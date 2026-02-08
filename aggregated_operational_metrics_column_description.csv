@@ -1,0 +1,16 @@
+column_name,description
+MONTH,Reporting month for the transaction volume metrics (typically YYYY-MM format)
+MARKET,Market or regional grouping for the healthcare client
+CLIENT_ID,Unique identifier of the payer or healthcare insurance client
+FIRST_ITER_SCS_CNT,Number of transactions successfully processed during the first processing iteration
+FIRST_ITER_FAIL_CNT,Number of transactions that failed during the first processing iteration
+NEXT_ITER_SCS_CNT,Number of transactions successfully processed during subsequent retry or reprocessing iterations
+NEXT_ITER_FAIL_CNT,Number of transactions that failed even after reprocessing attempts
+OVERALL_SCS_CNT,Total number of successfully processed transactions across all iterations
+OVERALL_FAIL_CNT,Total number of failed transactions across all iterations
+SCS_PERCENT,Overall transaction success percentage for the client, market, and month
+IS_ACTIVE,Flag indicating whether the report record is currently active
+CREAT_DT,Timestamp when the transaction volume report record was created
+CREAT_USER_ID,User or system that created the report record
+LAST_UPDT_DT,Timestamp when the record was last updated
+LAST_UPDT_USER_ID,User or system that last updated the record

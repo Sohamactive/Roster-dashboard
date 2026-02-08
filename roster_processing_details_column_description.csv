@@ -1,0 +1,23 @@
+column_name,description
+ID,Surrogate primary key uniquely identifying each roster file processing record
+RO_ID,Unique Roster Object identifier representing a specific roster file/job execution
+RA_FILE_DETAILS_ID,Foreign key linking to Risk Adjustment file metadata (file name, received date, checksum, etc.)
+RA_ROSTER_DETAILS_ID,Foreign key linking to roster configuration and roster-level details
+RA_PLM_RO_PROF_DATA_ID,Foreign key linking to provider/professional master data used during processing
+SRC_SYS,Source system from which the roster data was received (e.g., AvailityPDM, Demographic)
+ORG_NM,Name of the healthcare provider organization whose roster was processed
+CNT_STATE,US state in which the provider organization operates
+LOB,Line of Business for the data (e.g., Medicare, Medicaid, Commercial)
+RUN_NO,Processing iteration number (1 = initial run, >1 = reprocessing attempt)
+TOT_REC_CNT,Total number of records received in the roster file
+SCS_REC_CNT,Number of records successfully processed
+FAIL_REC_CNT,Number of records that failed processing
+SKIP_REC_CNT,Number of records skipped due to business rules or duplication
+REJ_REC_CNT,Number of records rejected due to validation or compliance errors
+SCS_PCT,Percentage of successfully processed records for the file
+SPS_LOAD_HEALTH,Overall processing health indicator derived from success percentage (e.g., Green, Amber, Red)
+IS_ACTIVE,Flag indicating whether the record is currently active
+CREAT_DT,Timestamp when the processing record was created
+CREAT_USER_ID,User or system that created the processing record
+LAST_UPDT_DT,Timestamp when the record was last updated
+LAST_UPDT_USER_ID,User or system that last updated the record
