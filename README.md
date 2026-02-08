@@ -46,8 +46,6 @@ pip install -r requirements.txt
 Ensure these CSV files are in the project root:
 - ✅ `roster_processing_details.csv`
 - ✅ `aggregated_operational_metrics.csv`
-- ✅ `roster_processing_details_column_description.csv`
-- ✅ `aggregated_operational_metrics_column_description.csv`
 
 ### Step 3: Launch Dashboard
 
@@ -62,10 +60,10 @@ The dashboard will automatically open in your default browser at `http://localho
 ## 📋 Features
 
 ### Key Performance Indicators (KPIs)
-- **Total Transactions**: Aggregate record count from roster processing
-- **Overall Success Rate**: Percentage of successfully processed records
-- **Total Failures**: Count of failed transactions
-- **Reprocess Recovery**: Records recovered through reprocessing iterations
+- **Total Transactions**: Sum of successful and failed roster processing records
+- **Overall Success Rate**: Percentage of successfully processed rosters
+- **Total Failures**: Count of failed roster processing runs
+- **Reprocess Recovery**: Records recovered through subsequent processing iterations
 
 ### Interactive Visualizations
 
@@ -73,60 +71,70 @@ The dashboard will automatically open in your default browser at `http://localho
 Line chart showing success rate trends over time to identify patterns and anomalies.
 
 #### 2. First Iteration vs Reprocessing Success
-Stacked bar chart comparing initial success vs records recovered through reprocessing, by market.
+Stacked bar chart comparing initial success vs records recovered through reprocessing, by market (Top 10 markets by volume).
 
-#### 3. Failure Analysis (Multi-Tab)
+#### 3. Processing Stage Analysis
+- **Stage Distribution**: Bar chart showing roster counts at each processing stage
+- **Duration Analysis**: Box plot showing processing time distribution across stages (Pre-Processing, ISF Generation, DART Generation, SPS Load)
+
+#### 4. Failure Analysis (Multi-Tab)
 - **By State**: Top 10 states with highest failure counts
 - **By Organization**: Top 10 organizations with most failures
 - **By Line of Business**: Failure distribution across LOBs (Medicare, Medicaid, Commercial)
 
-#### 4. Failed Roster Runs Table
+#### 5. Failed Roster Details Table
 Detailed drillable table showing:
-- Roster Object ID
+- Roster Object ID (RO_ID)
 - Organization name
 - State
 - Line of Business
 - Run number (iteration count)
-- Total/Success/Failure counts
-- Success percentage
-- Load health status
+- Failure status
+- Latest processing stage
+- SPS Load health status
+- Stuck indicator
+- Latest run date
 
 ### Filters & Controls
 - **Month Selector**: Focus on specific reporting periods
 - **Market Filter**: Drill down to regional markets
 - **State Filter**: Analyze specific geographic areas
-- **Download Button**: Export failure details to CSV
+- **Download Button**: Export failure details to CSV with timestamp
 
 ---
 
 ## 📊 Data Sources
 
 ### 1. Roster Processing Details (`roster_processing_details.csv`)
-Event-level roster file processing records containing:
-- Processing metadata (RO_ID, organization, state, LOB)
-- Volume metrics (total, success, fail, skip, reject counts)
-- Run iteration details
-- Processing stage durations
-- Health indicators
+Granular roster file processing records containing:
+- Processing metadata (RO_ID, organization, state, LOB, source system)
+- Run iteration details (RUN_NO)
+- Processing stage information (LATEST_STAGE_NM)
+- Failure indicators (IS_FAILED, IS_STUCK, FAILURE_STATUS)
+- Stage-specific durations (PRE_PROCESSING, ISF_GEN, DART_GEN, SPS_LOAD)
+- Health indicators (PRE_PROCESSING_HEALTH, ISF_GEN_HEALTH, DART_GEN_HEALTH, SPS_LOAD_HEALTH)
+- Timestamps (FILE_RECEIVED_DT, LATEST_OBJECT_RUN_DT, CREAT_DT, LAST_UPDT_DT)
 
 **Key Columns Used:**
-- `ORG_NM`, `CNT_STATE`, `LOB` — Dimensions
-- `RUN_NO` — Processing iteration
-- `TOT_REC_CNT`, `SCS_REC_CNT`, `FAIL_REC_CNT` — Volume metrics
-- `SCS_PCT`, `SPS_LOAD_HEALTH` — Quality indicators
+- `RO_ID`, `ORG_NM`, `CNT_STATE`, `LOB` — Dimensions
+- `RUN_NO` — Processing iteration count
+- `IS_FAILED`, `IS_STUCK` — Failure indicators
+- `LATEST_STAGE_NM` — Current processing stage
+- `*_DURATION` columns — Performance metrics
+- `*_HEALTH` columns — Stage quality indicators
 
 ### 2. Aggregated Operational Metrics (`aggregated_operational_metrics.csv`)
-Monthly rollups by market showing:
+Monthly rollups by market and client showing:
 - First iteration success/fail counts
 - Next iteration (reprocessing) success/fail counts
 - Overall success/fail totals
 - Success percentage
 
 **Key Columns Used:**
-- `MONTH`, `MARKET` — Time and regional dimensions
-- `FIRST_ITER_SCS_CNT`, `FIRST_ITER_FAIL_CNT` — Initial processing
+- `MONTH`, `MARKET`, `CLIENT_ID` — Dimensions
+- `FIRST_ITER_SCS_CNT`, `FIRST_ITER_FAIL_CNT` — Initial processing results
 - `NEXT_ITER_SCS_CNT`, `NEXT_ITER_FAIL_CNT` — Reprocessing results
-- `OVERALL_SCS_CNT`, `OVERALL_FAIL_CNT`, `SCS_PERCENT` — Totals
+- `OVERALL_SCS_CNT`, `OVERALL_FAIL_CNT`, `SCS_PERCENT` — Aggregated totals
 
 ---
 
@@ -140,25 +148,29 @@ CSV Files (Raw Data)
 Data Loading & Validation
         ↓
 Data Cleaning & Normalization
-   • Type coercion
-   • Date parsing
-   • Missing value handling
+   • Type coercion (numeric, dates, text)
+   • Date parsing with error handling
+   • Missing value imputation
    • Format standardization
         ↓
 Metric Computation
    • KPI aggregation
    • Trend calculation
-   • Failure analysis
+   • Failure analysis by dimension
         ↓
 Visualization Layer (Plotly)
+   • Line charts, bar charts, box plots
+   • Interactive hover & zoom
         ↓
 Interactive Dashboard (Streamlit)
+   • Dynamic filtering
+   • Real-time updates
 ```
 
 ### Auto-Update Mechanism
 - Dashboard reads CSVs on every app refresh
-- Press **R** in the browser to reload data
-- Streamlit's `@st.cache_data` decorator optimizes performance
+- Press **R** in the browser to reload data after CSV updates
+- Streamlit's `@st.cache_data` decorator caches processed data for performance
 - File changes are detected automatically on page refresh
 
 ---
@@ -170,7 +182,7 @@ Interactive Dashboard (Streamlit)
 | **Language** | Python 3.8+ | Core processing |
 | **Dashboard** | Streamlit | Web interface |
 | **Data Processing** | Pandas | CSV loading & manipulation |
-| **Visualization** | Plotly | Interactive charts |
+| **Visualization** | Plotly Express & Graph Objects | Interactive charts |
 | **Environment** | venv | Dependency isolation |
 
 ---
@@ -179,19 +191,24 @@ Interactive Dashboard (Streamlit)
 
 ### Scenario 1: Identify Problem Markets
 1. Navigate to the "First Iteration vs Reprocessing Success" chart
-2. Look for markets with large blue (reprocessing) bars
-3. These markets have high initial failure rates requiring multiple iterations
+2. Look for markets with large blue (recovery) bars relative to green (first iteration)
+3. These markets have high initial failure rates requiring multiple reprocessing iterations
 
 ### Scenario 2: Drill Down to Specific Failures
 1. Use the **Month** and **State** filters in the sidebar
-2. Navigate to the "Failed Roster Runs" table at the bottom
-3. Sort by failure count to identify problematic organizations
-4. Download CSV for detailed investigation
+2. Navigate to the "Failed Roster Analysis" tabs
+3. Click on the "Failed Roster Details" table at the bottom
+4. Click **Download Failed Roster Details (CSV)** for detailed investigation
 
 ### Scenario 3: Track Success Rate Trends
 1. View the "Monthly Success Rate Trend" chart
 2. Identify months with drops in success rate
-3. Cross-reference with the failure analysis tabs to find root causes
+3. Cross-reference with the failure analysis tabs to find root causes (state, org, LOB)
+
+### Scenario 4: Analyze Processing Performance
+1. Review the "Processing Duration Distribution by Stage" box plot
+2. Identify stages with high median durations or wide variability
+3. Focus optimization efforts on bottleneck stages
 
 ---
 
@@ -200,11 +217,12 @@ Interactive Dashboard (Streamlit)
 ### Quick Smoke Test
 
 After launching the dashboard, verify:
-- ✅ KPI tiles show non-zero values
-- ✅ Monthly trend chart displays multiple months
-- ✅ Filter dropdowns populate with data
-- ✅ Failure tables show recent records
-- ✅ Download button generates CSV
+- ✅ Four KPI tiles show non-zero values with gradient backgrounds
+- ✅ "Monthly Success Rate Trend" chart displays multiple data points
+- ✅ Filter dropdowns populate with available options
+- ✅ Failure analysis tabs show charts or success messages
+- ✅ Failed Roster Details table shows recent records (if failures exist)
+- ✅ Download button generates timestamped CSV
 
 ### Data Integrity Check
 
@@ -215,8 +233,12 @@ import pandas as pd
 # Load aggregated metrics
 df = pd.read_csv('aggregated_operational_metrics.csv')
 
-# Get latest month total
-latest = df[df['MONTH'] == '01-2026']
+# Get latest month
+df['MONTH_DT'] = pd.to_datetime(df['MONTH'], format='%m-%Y', errors='coerce')
+latest_month = df['MONTH_DT'].max()
+latest = df[df['MONTH_DT'] == latest_month]
+
+# Calculate total
 total = latest['OVERALL_SCS_CNT'].sum() + latest['OVERALL_FAIL_CNT'].sum()
 
 print(f"Expected total transactions: {total:,}")
@@ -235,16 +257,26 @@ This should match the "Total Transactions" KPI on the dashboard.
 ```
 
 ### Issue: "No data available" error
-**Solution**: Verify CSV files are in the project root directory
+**Solution**: Verify both CSV files are in the project root directory
 ```powershell
-ls *.csv
+dir *.csv
 ```
+Expected files: `roster_processing_details.csv` and `aggregated_operational_metrics.csv`
 
 ### Issue: Charts not displaying
-**Solution**: Check data format in CSVs, especially MONTH column format
+**Solution**: 
+- Check MONTH column format in `aggregated_operational_metrics.csv` (should be MM-YYYY)
+- Ensure numeric columns contain valid numbers (no text values)
+- Verify date columns are in recognizable date formats
 
 ### Issue: Filters show "Unknown" values
-**Solution**: CSV may have missing/null values — this is expected and handled
+**Solution**: This is expected for missing/null values in CSV — the app handles this gracefully
+
+### Issue: KPIs show zero or incorrect values
+**Solution**: 
+- Verify column names match expected format (case-sensitive)
+- Check for null values in critical columns
+- Ensure IS_FAILED column uses 1 for failures, 0 for success
 
 ---
 
@@ -253,16 +285,31 @@ ls *.csv
 ```
 roster-dashboard/
 │
-├── app.py                                          # Main Streamlit application
-├── requirements.txt                                # Python dependencies
-├── README.md                                       # This file
+├── app.py                                 # Main Streamlit application
+├── requirements.txt                       # Python dependencies
+├── README.md                              # This file
 │
-├── roster_processing_details.csv                  # Raw event-level data
-├── aggregated_operational_metrics.csv             # Monthly aggregated data
-├── roster_processing_details_column_description.csv
-├── aggregated_operational_metrics_column_description.csv
+├── roster_processing_details.csv         # Granular processing data
+├── aggregated_operational_metrics.csv    # Monthly aggregated data
 │
-└── .venv/                                          # Virtual environment (created)
+└── .venv/                                 # Virtual environment (created during setup)
+```
+
+---
+
+## 📋 Dependencies
+
+The application requires the following Python packages (defined in `requirements.txt`):
+
+```text
+streamlit>=1.28.0
+pandas>=2.0.0
+plotly>=5.17.0
+```
+
+Install with:
+```powershell
+pip install -r requirements.txt
 ```
 
 ---
@@ -270,12 +317,13 @@ roster-dashboard/
 ## 🎓 Workshop Learning Outcomes
 
 By completing this workshop, participants have:
-1. ✅ Built an end-to-end data pipeline from raw CSV to dashboard
-2. ✅ Implemented automated data cleaning and normalization
-3. ✅ Created interactive visualizations with Plotly
+1. ✅ Built an end-to-end data pipeline from raw CSV to interactive dashboard
+2. ✅ Implemented automated data cleaning and normalization techniques
+3. ✅ Created interactive visualizations with Plotly Express and Graph Objects
 4. ✅ Designed user-friendly analytics interfaces with Streamlit
 5. ✅ Applied real-world operational analytics patterns
 6. ✅ Experienced minimal-intervention automation principles
+7. ✅ Learned data-driven decision making through visual analytics
 
 ---
 
@@ -283,20 +331,23 @@ By completing this workshop, participants have:
 
 ### Additional Features to Consider
 - 🗺️ **Geographic Map View**: State-level choropleth map of success rates
-- ⏱️ **Processing Duration Analysis**: Histogram of stage-wise durations
-- 🚨 **Alert System**: Configurable thresholds for failure rates
+- 📊 **Advanced Analytics**: Statistical outlier detection for abnormal failure patterns
+- 🚨 **Alert System**: Configurable thresholds with notifications for critical failures
 - 📧 **Automated Reporting**: Scheduled email reports with key findings
-- 🔗 **Database Integration**: Connect to live databases instead of CSVs
+- 🔗 **Database Integration**: Connect to live databases instead of static CSVs
 - 🎯 **Predictive Analytics**: ML models to forecast failure risks
 - 👥 **Multi-User Access**: Authentication and role-based views
-- 📱 **Mobile Responsive**: Optimize for mobile devices
+- 📱 **Mobile Responsive**: Optimized layout for mobile devices
+- 🔍 **Search Functionality**: Full-text search across roster details
+- 📈 **Time Series Forecasting**: Predict future success rates
 
 ### Code Improvements
 - Unit tests for data processing functions
-- Error logging and monitoring
-- Performance optimization for large datasets
-- Configuration file for customizable settings
-- Docker containerization for deployment
+- Error logging and monitoring with log files
+- Performance optimization for datasets >100K rows
+- Configuration file (YAML/JSON) for customizable settings
+- Docker containerization for easy deployment
+- CI/CD pipeline for automated testing and deployment
 
 ---
 
@@ -308,9 +359,13 @@ By completing this workshop, participants have:
 - **Date**: February 8, 2026
 
 ### Documentation
-- [Streamlit Docs](https://docs.streamlit.io)
-- [Pandas Guide](https://pandas.pydata.org/docs/)
-- [Plotly Python](https://plotly.com/python/)
+- [Streamlit Documentation](https://docs.streamlit.io)
+- [Pandas User Guide](https://pandas.pydata.org/docs/user_guide/index.html)
+- [Plotly Python Graphing Library](https://plotly.com/python/)
+
+### Troubleshooting Resources
+- [Streamlit Community Forum](https://discuss.streamlit.io/)
+- [Stack Overflow - Streamlit Tag](https://stackoverflow.com/questions/tagged/streamlit)
 
 ---
 
@@ -322,5 +377,3 @@ Workshop Educational Material
 ---
 
 **Built with ❤️ for Healthcare Data Analytics Education**
-#   R o s t e r - d a s h b o a r d  
- 
